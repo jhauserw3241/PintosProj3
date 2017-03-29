@@ -52,7 +52,7 @@ page_for_addr (const void *address)
 
       /* No page.  Expand stack? */
 
-/* add code */
+	/* add code */
 
     }
   return NULL;
@@ -145,15 +145,18 @@ page_out (struct page *p)
      dirty bit, to prevent a race with the process dirtying the
      page. */
 
-/* add code here */
-
+  p.hash_elem = NULL;
   /* Has the frame been modified? */
-
-/* add code here */
-
-  /* Write frame contents to disk if necessary. */
-
-/* add code here */
+  dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
+  if(p->frame->page != p){
+	if(dirty){
+  	/* Write frame contents to disk if necessary. */
+	  ok = swap_out(p);	
+	}
+	else{
+	  ok = true;
+	}
+  }
 
   return ok;
 }
