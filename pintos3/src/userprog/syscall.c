@@ -504,7 +504,31 @@ lookup_mapping (int handle)
 static void
 unmap (struct mapping *m) 
 {
-/* add code here */
+	struct thread *cur = thread_current ();
+  struct list_elem *e = list_begin(&cur->mappings);
+	
+	struct mapping *em = list_entry(e, struct mapping, elem);
+	if(em == m)
+	{
+		struct list_elem *s = list_next(e);
+		s->prev = NULL;
+		free(e);
+	}
+
+	while (list_next(e) != NULL)
+	{
+		struct list_elem *s = list_next(e);
+		struct maping *sm = list_entry(s, struct mapping, elem);
+		if(sm == m)
+		{
+			struct list_elem *t = list_next(e);
+			e->next = t;
+			t->prev = e;
+			free(s);
+		}
+
+		e = list_next(e);
+	}
 }
  
 /* Mmap system call. */
@@ -560,7 +584,17 @@ sys_mmap (int handle, void *addr)
 static int
 sys_munmap (int mapping) 
 {
-/* add code here */
+	// Handle invalid mapping ID
+	if (mapping == -1)
+	{
+		return mapping;
+	}
+
+	// Find mapping object
+	struct mapping *m = lookup_mapping(mapping);
+
+	// Unmap object
+	unmap(m);
 
   return 0;
 }
