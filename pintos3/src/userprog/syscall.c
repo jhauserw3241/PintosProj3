@@ -510,24 +510,24 @@ unmap (struct mapping *m)
 	struct mapping *em = list_entry(e, struct mapping, elem);
 	if(em == m)
 	{
-		struct list_elem *s = list_next(e);
+		struct list_elem *s = e->next;
 		s->prev = NULL;
 		free(e);
 	}
 
-	while (list_next(e) != NULL)
+	while (e->next != NULL)
 	{
-		struct list_elem *s = list_next(e);
+		struct list_elem *s = e->next;
 		struct maping *sm = list_entry(s, struct mapping, elem);
 		if(sm == m)
 		{
-			struct list_elem *t = list_next(e);
+			struct list_elem *t = e->next;
 			e->next = t;
 			t->prev = e;
 			free(s);
 		}
 
-		e = list_next(e);
+		e = e->next;
 	}
 }
  
