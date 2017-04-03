@@ -123,7 +123,7 @@ release_child (struct wait_status *cs)
 {
   int new_ref_cnt;
   
-  lock_acquire (&cs->lock);
+  lock_acquire (&cs->lock); 
   new_ref_cnt = --cs->ref_cnt;
   lock_release (&cs->lock);
 
