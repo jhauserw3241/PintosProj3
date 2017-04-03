@@ -564,7 +564,7 @@ sys_munmap (int mapping)
 
   return 0;
 }
- 
+
 /* On thread exit, close all open files and unmap all mappings. */
 void
 syscall_exit (void) 
