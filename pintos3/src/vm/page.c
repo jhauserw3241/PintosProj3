@@ -141,21 +141,25 @@ page_out (struct page *p)
 
   ASSERT (p->frame != NULL);
   ASSERT (lock_held_by_current_thread (&p->frame->lock));
-
   /* Mark page not present in page table, forcing accesses by the
      process to fault.  This must happen before checking the
      dirty bit, to prevent a race with the process dirtying the
      page. */
-
-/* add code here */
-
+  struct list_elem page_before = * p->hash_elem.list_elem.prev;
+  struct list_elem page_after = * p->hash_elem.list_elem.next;
+  page_before.next = &page_after;
+  page_after.prev = &page_before;
   /* Has the frame been modified? */
-
-/* add code here */
-
-  /* Write frame contents to disk if necessary. */
-
-/* add code here */
+  dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
+  if(p->frame->page != p){
+	if(dirty){
+  	/* Write frame contents to disk if necessary. */
+	  ok = swap_out(p);	
+	}
+	else{
+	  ok = true;
+	}
+  }
 
   return ok;
 }
@@ -164,7 +168,7 @@ page_out (struct page *p)
    false otherwise.
    P must have a frame locked into memory. */
 bool
-page_accessed_recently (struct page *p)
+page_accessed_recently (struct page *p) 
 {
   bool was_accessed;
 
@@ -185,7 +189,7 @@ page_allocate (void *vaddr, bool read_only)
 {
   struct thread *t = thread_current ();
   struct page *p = malloc (sizeof *p);
-  if (p != NULL)
+  if (p != NULL) 
     {
       p->addr = pg_round_down (vaddr);
 
@@ -195,14 +199,13 @@ page_allocate (void *vaddr, bool read_only)
       p->frame = NULL;
 
       p->sector = (block_sector_t) -1;
-
       p->file = NULL;
       p->file_offset = 0;
       p->file_bytes = 0;
 
       p->thread = thread_current ();
 
-      if (hash_insert (t->pages, &p->hash_elem) != NULL)
+      if (hash_insert (t->pages, &p->hash_elem) != NULL) 
         {
           /* Already mapped. */
           free (p);
@@ -215,7 +218,7 @@ page_allocate (void *vaddr, bool read_only)
 /* Evicts the page containing address VADDR
    and removes it from the page table. */
 void
-page_deallocate (void *vaddr)
+page_deallocate (void *vaddr) 
 {
   struct page *p = page_for_addr (vaddr);
   ASSERT (p != NULL);
@@ -223,8 +226,8 @@ page_deallocate (void *vaddr)
   if (p->frame)
     {
       struct frame *f = p->frame;
-      if (p->file && !p->private)
-        page_out (p);
+      if (p->file && !p->private) 
+        page_out (p); 
       frame_free (f);
     }
   hash_delete (thread_current ()->pages, &p->hash_elem);
@@ -233,7 +236,7 @@ page_deallocate (void *vaddr)
 
 /* Returns a hash value for the page that E refers to. */
 unsigned
-page_hash (const struct hash_elem *e, void *aux UNUSED)
+page_hash (const struct hash_elem *e, void *aux UNUSED) 
 {
   const struct page *p = hash_entry (e, struct page, hash_elem);
   return ((uintptr_t) p->addr) >> PGBITS;
@@ -242,11 +245,11 @@ page_hash (const struct hash_elem *e, void *aux UNUSED)
 /* Returns true if page A precedes page B. */
 bool
 page_less (const struct hash_elem *a_, const struct hash_elem *b_,
-           void *aux UNUSED)
+           void *aux UNUSED) 
 {
   const struct page *a = hash_entry (a_, struct page, hash_elem);
   const struct page *b = hash_entry (b_, struct page, hash_elem);
-
+  
   return a->addr < b->addr;
 }
 
@@ -255,24 +258,23 @@ page_less (const struct hash_elem *a_, const struct hash_elem *b_,
    otherwise it may be read-only.
    Returns true if successful, false on failure. */
 bool
-page_lock (const void *addr, bool will_write)
+page_lock (const void *addr, bool will_write) 
 {
   struct page *p = page_for_addr (addr);
   if (p == NULL || (p->read_only && will_write))
     return false;
-
   frame_lock (p);
   if (p->frame == NULL)
     return (do_page_in (p)
             && pagedir_set_page (thread_current ()->pagedir, p->addr,
-                                 p->frame->base, !p->read_only));
+                                 p->frame->base, !p->read_only)); 
   else
     return true;
 }
 
 /* Unlocks a page locked with page_lock(). */
 void
-page_unlock (const void *addr)
+page_unlock (const void *addr) 
 {
   struct page *p = page_for_addr (addr);
   ASSERT (p != NULL);
