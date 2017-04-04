@@ -504,7 +504,19 @@ lookup_mapping (int handle)
 static void
 unmap (struct mapping *m) 
 {
-/* add code here */
+	struct thread *cur = thread_current();
+	struct list_elem *e = list_begin(&cur->mappings);
+
+	// Find element in list
+	while(e->next == NULL)
+	{
+		if(list_entry(e, struct mapping, elem) == m)
+		{
+			// Remove element from list
+			struct list_elem *n = list_remove(e);
+		  free(e);
+		}
+	}
 }
  
 /* Mmap system call. */
