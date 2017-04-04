@@ -572,7 +572,31 @@ sys_mmap (int handle, void *addr)
 static int
 sys_munmap (int mapping) 
 {
-/* add code here */
+	// Handle invalid mapping ID
+	if(mapping == -1 ||
+		 mapping == 0 ||
+		 mapping == 1)
+	{
+		return mapping;
+	}
+
+	// Find mapping object
+	struct mapping *m = lookup_mapping(mapping);
+
+	// Handle invalid page pointer
+	if(&m->base == 0x00000000)
+	{
+		return -1;
+	}
+
+	// Handle empty file
+	if(file_length(&m->file) == 0)
+	{
+		return -1;
+	}
+
+	// Unmap object
+	unmap(m);
 
   return 0;
 }
