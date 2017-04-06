@@ -141,26 +141,30 @@ page_out (struct page *p)
 
   ASSERT (p->frame != NULL);
   ASSERT (lock_held_by_current_thread (&p->frame->lock));
-  /* Mark page not present in page table, forcing accesses by the
+	//filesys lock on
+  
+	/* Mark page not present in page table, forcing accesses by the
      process to fault.  This must happen before checking the
      dirty bit, to prevent a race with the process dirtying the
      page. */
-  struct list_elem page_before = * p->hash_elem.list_elem.prev;
-  struct list_elem page_after = * p->hash_elem.list_elem.next;
-  page_before.next = &page_after;
-  page_after.prev = &page_before;
   /* Has the frame been modified? */
   dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
-  if(p->frame->page != p){
+  pagedir_clear_page(p->thread->pagedir, p->addr);
+	//frame lock on?
 	if(dirty){
   	/* Write frame contents to disk if necessary. */
-	  ok = swap_out(p);	
+		if(p->private){
+	  	ok = swap_out(p);
+		}
+		else{
+			file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+		}
 	}
 	else{
 	  ok = true;
 	}
-  }
 
+	//filesys lock off
   return ok;
 }
 
