@@ -51,10 +51,10 @@ page_for_addr (const void *address)
         return hash_entry (e, struct page, hash_elem);
 
       /* No page.  Expand stack? */
-
-/* add code - Page fault?*/
-      if (address >= (PHYS_BASE - STACK_MAX) && (thread_current()->user_esp - address) < 32)
-        return page_allocate(pg_round_down(address), false);
+      if ((address >= (PHYS_BASE - STACK_MAX)) &&
+					((thread_current()->user_esp - 32) <= address)){
+        return page_allocate((void *)address, false);
+			}
 
     }
   return NULL;
@@ -141,30 +141,48 @@ page_out (struct page *p)
 
   ASSERT (p->frame != NULL);
   ASSERT (lock_held_by_current_thread (&p->frame->lock));
-	//filesys lock on
-  
+	
 	/* Mark page not present in page table, forcing accesses by the
      process to fault.  This must happen before checking the
      dirty bit, to prevent a race with the process dirtying the
      page. */
+  pagedir_clear_page(p->thread->pagedir, p->addr);
+
+	// Make sure file has data
+	if(p->file == NULL){
+		ok = swap_out(p);
+	}
+
   /* Has the frame been modified? */
   dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
-  pagedir_clear_page(p->thread->pagedir, p->addr);
-	//frame lock on?
+	
+	printf("Right before dirty check\n");
+
 	if(dirty){
   	/* Write frame contents to disk if necessary. */
 		if(p->private){
 	  	ok = swap_out(p);
 		}
 		else{
-			file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+			printf("Right before file_write_at()\n");
+			ok = file_write_at(p->file,
+												 p->frame->base,
+												 p->file_bytes,
+												 p->file_offset) == p->file_bytes;
+			printf("Right after file_write_at()\n");
 		}
 	}
 	else{
 	  ok = true;
 	}
 
-	//filesys lock off
+	printf("Right after dirty check\n");
+
+	// Check if ok is true
+	if(ok){
+		p->frame = NULL;
+	}
+
   return ok;
 }
 

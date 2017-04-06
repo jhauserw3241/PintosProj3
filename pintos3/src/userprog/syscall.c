@@ -505,11 +505,20 @@ static void
 unmap (struct mapping *m) 
 {
 	list_remove(&(m->elem));
-	for(int i = 0; i < m->page_cnt; i++) 
+/*	for(int i = 0; i < m->page_cnt; i++) 
 	{
-		page_deallocate((int)(m->base) + i * PGSIZE);
+		page_deallocate((int)(m->base) + (i * PGSIZE));
+	}*/
+
+	for(int i = m->page_cnt; i > 0; i--){
+		page_deallocate(m->base);
+		m->base = m->base + PGSIZE;
 	}
+	
+	lock_acquire(&fs_lock);
 	file_close(m->file);
+	lock_release(&fs_lock);
+
 	free(m);
 }
  
