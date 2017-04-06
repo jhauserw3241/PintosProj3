@@ -504,10 +504,11 @@ lookup_mapping (int handle)
 static void
 unmap (struct mapping *m) 
 {
-	struct thread *cur = thread_current();
-	struct list_elem *e = list_begin(&cur->mappings);
+//	printf("Start unmap\n");
+	//struct thread *cur = thread_current();
+	//struct list_elem *e = list_begin(&cur->mappings);
 
-	// Find element in list
+	/*// Find element in list
 	while(e->next == NULL)
 	{
 		if(list_entry(e, struct mapping, elem) == m)
@@ -516,13 +517,26 @@ unmap (struct mapping *m)
 			struct list_elem *n = list_remove(e);
 		  free(e);
 		}
+	}*/
+
+	list_remove(&(m->elem));
+	for(int i = 0; i < m->page_cnt; i++) 
+	{
+		// Make sure that page_deallocate writes out the changes to the pages
+		// or make call to page_out
+		page_deallocate((int)(m->base) + i * PGSIZE);
 	}
+	file_close(m->file);
+	free(m);
+
+	//printf("End unmap\n");
 }
  
 /* Mmap system call. */
 static int
 sys_mmap (int handle, void *addr)
 {
+	//printf("Start mmap\n");
   struct file_descriptor *fd = lookup_fd (handle);
   struct mapping *m = malloc (sizeof *m);
   size_t offset;
@@ -554,6 +568,7 @@ sys_mmap (int handle, void *addr)
       if (p == NULL)
         {
           unmap (m);
+					//printf("Ship is already going down\n");
           return -1;
         }
       p->private = false;
@@ -565,13 +580,15 @@ sys_mmap (int handle, void *addr)
       m->page_cnt++;
     }
   
-  return m->handle;
+	//printf("End mmap\n");
+ // return m->handle;
 }
 
 /* Munmap system call. */
 static int
 sys_munmap (int mapping) 
 {
+//	printf("Start munmap\n");
 	/*// Handle invalid mapping ID
 	if(mapping == -1 ||
 		 mapping == 0 ||
@@ -587,10 +604,11 @@ sys_munmap (int mapping)
 	if(&m->base == 0x00000000)
 	{
 		return -1;
-	}
+	}*/
 
-	// Handle empty file
-	if(file_length(&m->file) == 0)
+	/*// Handle empty file
+	struct file *f = &m->file;
+	if(file_length(&f) == 0)
 	{
 		return -1;
 	}*/
@@ -598,6 +616,7 @@ sys_munmap (int mapping)
 	// Unmap object
 	unmap(m);
 
+	//printf("End munmap\n");
   return 0;
 }
  
