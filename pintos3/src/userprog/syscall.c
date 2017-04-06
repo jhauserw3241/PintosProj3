@@ -507,8 +507,6 @@ unmap (struct mapping *m)
 	list_remove(&(m->elem));
 	for(int i = 0; i < m->page_cnt; i++) 
 	{
-		// Make sure that page_deallocate writes out the changes to the pages
-		// or make call to page_out
 		page_deallocate((int)(m->base) + i * PGSIZE);
 	}
 	file_close(m->file);
