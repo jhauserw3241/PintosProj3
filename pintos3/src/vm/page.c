@@ -53,7 +53,7 @@ page_for_addr (const void *address)
       /* No page.  Expand stack? */
 
 /* add code - Page fault?*/
-      if (address > (PHYS_BASE - STACK_MAX) && (thread_current()->user_esp - address) < 32)
+      if (address >= (PHYS_BASE - STACK_MAX) && (thread_current()->user_esp - address) < 32)
         return page_allocate(pg_round_down(address), false);
 
     }
