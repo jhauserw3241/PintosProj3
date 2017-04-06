@@ -1,4 +1,3 @@
-
 #include "vm/page.h"
 #include <stdio.h>
 #include <string.h>
@@ -27,7 +26,7 @@ destroy_page (struct hash_elem *p_, void *aux UNUSED)
 
 /* Destroys the current process's page table. */
 void
-page_exit (void) 
+page_exit (void)
 {
   struct hash *h = thread_current ()->pages;
   if (h != NULL)
@@ -38,9 +37,9 @@ page_exit (void)
    or a null pointer if no such page exists.
    Allocates stack pages as necessary. */
 static struct page *
-page_for_addr (const void *address) 
+page_for_addr (const void *address)
 {
-  if (address < PHYS_BASE) 
+  if (address < PHYS_BASE)
     {
       struct page p;
       struct hash_elem *e;
@@ -53,7 +52,9 @@ page_for_addr (const void *address)
 
       /* No page.  Expand stack? */
 
-	/* add code */
+/* add code - Page fault?*/
+      if (address > (PHYS_BASE - STACK_MAX) && (thread_current()->user_esp - address) < 32)
+        return page_allocate(pg_round_down(address), false);
 
     }
   return NULL;
@@ -70,12 +71,12 @@ do_page_in (struct page *p)
     return false;
 
   /* Copy data into the frame. */
-  if (p->sector != (block_sector_t) -1) 
+  if (p->sector != (block_sector_t) -1)
     {
       /* Get data from swap. */
-      swap_in (p); 
+      swap_in (p);
     }
-  else if (p->file != NULL) 
+  else if (p->file != NULL)
     {
       /* Get data from file. */
       off_t read_bytes = file_read_at (p->file, p->frame->base,
@@ -86,7 +87,7 @@ do_page_in (struct page *p)
         printf ("bytes read (%"PROTd") != bytes requested (%"PROTd")\n",
                 read_bytes, p->file_bytes);
     }
-  else 
+  else
     {
       /* Provide all-zero page. */
       memset (p->frame->base, 0, PGSIZE);
@@ -98,18 +99,18 @@ do_page_in (struct page *p)
 /* Faults in the page containing FAULT_ADDR.
    Returns true if successful, false on failure. */
 bool
-page_in (void *fault_addr) 
+page_in (void *fault_addr)
 {
   struct page *p;
   bool success;
 
   /* Can't handle page faults without a hash table. */
-  if (thread_current ()->pages == NULL) 
+  if (thread_current ()->pages == NULL)
     return false;
 
   p = page_for_addr (fault_addr);
-  if (p == NULL) 
-    return false; 
+  if (p == NULL)
+    return false;
 
   frame_lock (p);
   if (p->frame == NULL)
@@ -118,7 +119,7 @@ page_in (void *fault_addr)
         return false;
     }
   ASSERT (lock_held_by_current_thread (&p->frame->lock));
-    
+
   /* Install frame into page table. */
   success = pagedir_set_page (thread_current ()->pagedir, p->addr,
                               p->frame->base, !p->read_only);
@@ -133,32 +134,41 @@ page_in (void *fault_addr)
    P must have a locked frame.
    Return true if successful, false on failure. */
 bool
-page_out (struct page *p) 
+page_out (struct page *p)
 {
+  printf("going into page out\n");
   bool dirty;
   bool ok = false;
 
   ASSERT (p->frame != NULL);
   ASSERT (lock_held_by_current_thread (&p->frame->lock));
-
   /* Mark page not present in page table, forcing accesses by the
      process to fault.  This must happen before checking the
      dirty bit, to prevent a race with the process dirtying the
      page. */
 
-  p.hash_elem = NULL;
-  /* Has the frame been modified? */
   dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
-  if(p->frame->page != p){
+  pagedir_clear_page(p->thread->pagedir, p->addr);
+
+  printf("the page reference is null \n" );
+  /* Has the frame been modified? */
+ // if(p->private){
+  	printf("frame has been modified\n");
 	if(dirty){
   	/* Write frame contents to disk if necessary. */
-	  ok = swap_out(p);	
+		if(p->private){
+ 			ok = swap_out(p);	
+		}
+		else{
+			file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+		}	
 	}
 	else{
 	  ok = true;
 	}
-  }
-
+	printf("ok = %d \n", ok);
+  //}
+  printf("leaving page out\n");
   return ok;
 }
 
@@ -197,7 +207,6 @@ page_allocate (void *vaddr, bool read_only)
       p->frame = NULL;
 
       p->sector = (block_sector_t) -1;
-
       p->file = NULL;
       p->file_offset = 0;
       p->file_bytes = 0;
@@ -262,7 +271,6 @@ page_lock (const void *addr, bool will_write)
   struct page *p = page_for_addr (addr);
   if (p == NULL || (p->read_only && will_write))
     return false;
-  
   frame_lock (p);
   if (p->frame == NULL)
     return (do_page_in (p)

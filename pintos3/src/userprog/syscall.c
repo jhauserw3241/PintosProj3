@@ -504,7 +504,19 @@ lookup_mapping (int handle)
 static void
 unmap (struct mapping *m) 
 {
-/* add code here */
+	struct thread *cur = thread_current();
+	struct list_elem *e = list_begin(&cur->mappings);
+
+	// Find element in list
+	while(e->next == NULL)
+	{
+		if(list_entry(e, struct mapping, elem) == m)
+		{
+			// Remove element from list
+			struct list_elem *n = list_remove(e);
+		  free(e);
+		}
+	}
 }
  
 /* Mmap system call. */
@@ -560,11 +572,35 @@ sys_mmap (int handle, void *addr)
 static int
 sys_munmap (int mapping) 
 {
-/* add code here */
+	/*// Handle invalid mapping ID
+	if(mapping == -1 ||
+		 mapping == 0 ||
+		 mapping == 1)
+	{
+		return mapping;
+	}*/
+
+	// Find mapping object
+	struct mapping *m = lookup_mapping(mapping);
+
+	/*// Handle invalid page pointer
+	if(&m->base == 0x00000000)
+	{
+		return -1;
+	}
+
+	// Handle empty file
+	if(file_length(&m->file) == 0)
+	{
+		return -1;
+	}*/
+
+	// Unmap object
+	unmap(m);
 
   return 0;
 }
-
+ 
 /* On thread exit, close all open files and unmap all mappings. */
 void
 syscall_exit (void) 
