@@ -149,35 +149,28 @@ page_out (struct page *p)
   pagedir_clear_page(p->thread->pagedir, p->addr);
 
 	// Make sure file has data
-	if(p->file == NULL){
-		ok = swap_out(p);
-	}
+	
 
   /* Has the frame been modified? */
   dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
 	
-	printf("Right before dirty check\n");
-
-	if(dirty){
-  	/* Write frame contents to disk if necessary. */
-		if(p->private){
-	  	ok = swap_out(p);
+	if(p->file != NULL){	
+		if(dirty){
+		/* Write frame contents to disk if necessary. */
+			if(p->private){
+				ok = swap_out(p);
+			}
+			else{
+				ok = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset) == p->file_bytes;
+			}
 		}
 		else{
-			printf("Right before file_write_at()\n");
-			ok = file_write_at(p->file,
-												 p->frame->base,
-												 p->file_bytes,
-												 p->file_offset) == p->file_bytes;
-			printf("Right after file_write_at()\n");
+			ok = true;
 		}
 	}
-	else{
-	  ok = true;
-	}
-
-	printf("Right after dirty check\n");
-
+	else
+		ok = swap_out(p);
+	
 	// Check if ok is true
 	if(ok){
 		p->frame = NULL;
