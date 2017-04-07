@@ -148,9 +148,6 @@ page_out (struct page *p)
      page. */
   pagedir_clear_page(p->thread->pagedir, p->addr);
 
-	// Make sure file has data
-	
-
   /* Has the frame been modified? */
   dirty = pagedir_is_dirty(p->thread->pagedir, p->addr);
 	
